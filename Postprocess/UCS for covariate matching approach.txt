@@ -1,0 +1,24 @@
+library(cobalt)
+library(MatchIt)
+library(readxl)
+
+# 读取数据
+data <- read_excel("./Submit/Supplementary material/Supplementary Tables 8 UCS for covariate matching approach.xlsx")
+
+# 逻辑回归计算倾向得分
+model <- glm(UCS ~ wind + tmpmean + rhu + isa + DEM, data = data, family = binomial())
+data$propensity_score <- predict(model, type = "response")
+
+match <- matchit(UCS ~ wind + tmpmean + rhu + isa + DEM, data = data, method = "nearest", caliper = 0.2)
+
+# 获取匹配后的数据
+matched_data <- match.data(match)
+
+# 结果分析
+summary(match)
+bal.tab(match, stats = c("mean.diffs", "variance.ratios"), thresholds = c(m = 0.1))
+
+# 处理结果的 t 检验
+outcome <- matched_data$PM10
+treatment <- matched_data$UCS
+t.test(outcome ~ treatment) 

@@ -1,0 +1,16 @@
+# arguments for dataset
+dataset: jianshe
+nclass: 2
+crop_size: 1024
+
+# arguments for training
+epochs: 20
+batch_size: 2 # per GPU x 4 GPUs
+lr: 0.001
+lr_multi: 10.0
+criterion:
+  name: CELoss
+  kwargs:
+    ignore_index: 255
+conf_thresh: 0.95
+
