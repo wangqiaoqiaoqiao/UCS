@@ -6,10 +6,10 @@ library(readxl)
 data <- read_excel("./Submit/Supplementary material/Supplementary Tables 9 DPN for covariate matching approach.xlsx")
 
 # 逻辑回归计算倾向得分
-model <- glm(UCS ~ wind + tmpmean + rhu + isa + DEM + area2020, data = data, family = binomial())
+model <- glm(DPN ~ wind + tmpmean + rhu + isa + DEM + area2020, data = data, family = binomial())
 data$propensity_score <- predict(model, type = "response")
 
-match <- matchit(UCS ~ wind + tmpmean + rhu + isa + DEM + area2020, data = data, method = "nearest", caliper = 0.15)
+match <- matchit(DPN ~ wind + tmpmean + rhu + isa + DEM + area2020, data = data, method = "nearest", caliper = 0.15)
 
 # 获取匹配后的数据
 matched_data <- match.data(match)
@@ -20,5 +20,5 @@ bal.tab(match, stats = c("mean.diffs", "variance.ratios"), thresholds = c(m = 0.
 
 # 处理结果的 t 检验
 outcome <- matched_data$PM10
-treatment <- matched_data$UCS
+treatment <- matched_data$DPN
 t.test(outcome ~ treatment) 
