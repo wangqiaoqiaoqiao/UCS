@@ -5,20 +5,83 @@ library(readxl)
 # 读取数据
 data <- read_excel("./Submit/Supplementary material/Supplementary Tables 9 DPN for covariate matching approach.xlsx")
 
-# 逻辑回归计算倾向得分
-model <- glm(DPN ~ wind + tmpmean + rhu + isa + DEM + area2020, data = data, family = binomial())
+# ----------------------------
+# 0) 可选：转换为密度/强度（推荐）
+# ----------------------------
+use_density <- TRUE
+
+if (use_density) {
+  A <- data$areagrid
+
+  # 点：个数 / 面积
+  data$traffic_1_d <- data$traffic_1 / A
+  data$traffic_2_d <- data$traffic_2 / A
+  data$traffic_3_d <- data$traffic_3 / A
+
+  # 线：长度 / 面积
+  data$Road_Len1_d <- data$Road_Len1 / A
+  data$Road_Len2_d <- data$Road_Len2 / A
+  data$Road_Len3_d <- data$Road_Len3 / A
+  data$Rail_Len1_d <- data$Rail_Len1 / A
+  data$Rail_Len2_d <- data$Rail_Len2 / A
+
+  traffic_vars <- c("traffic_1_d","traffic_2_d","traffic_3_d")
+  trans_vars   <- c("Road_Len1_d","Road_Len2_d","Road_Len3_d","Rail_Len1_d","Rail_Len2_d")
+} else {
+  traffic_vars <- c("traffic_1","traffic_2","traffic_3")
+  trans_vars   <- c("Road_Len1","Road_Len2","Road_Len3","Rail_Len1","Rail_Len2")
+}
+
+# ----------------------------
+# 1) PCA：traffic -> PC1 + PC2
+# ----------------------------
+traffic_df <- as.data.frame(data[, traffic_vars])
+traffic_ok <- complete.cases(traffic_df)
+
+pca_traffic <- prcomp(traffic_df[traffic_ok, ], center = TRUE, scale. = TRUE)
+
+data$PC_traffic1 <- NA_real_
+data$PC_traffic2 <- NA_real_
+data$PC_traffic1[traffic_ok] <- pca_traffic$x[, 1]
+data$PC_traffic2[traffic_ok] <- pca_traffic$x[, 2]
+
+# ----------------------------
+# 2) PCA：trans -> PC1 + PC2 + PC3
+# ----------------------------
+trans_df <- as.data.frame(data[, trans_vars])
+trans_ok <- complete.cases(trans_df)
+
+pca_trans <- prcomp(trans_df[trans_ok, ], center = TRUE, scale. = TRUE)
+
+data$PC_trans1 <- NA_real_
+data$PC_trans2 <- NA_real_
+data$PC_trans3 <- NA_real_
+data$PC_trans1[trans_ok] <- pca_trans$x[, 1]
+data$PC_trans2[trans_ok] <- pca_trans$x[, 2]
+data$PC_trans3[trans_ok] <- pca_trans$x[, 3]
+
+# ----------------------------
+# 3) 倾向得分 + 匹配：把 PC 加入协变量
+# ----------------------------
+covars <- c(
+  "wind","tmpmean","rhu","densityisa","DEM","densitypop","densityBuildI","density2020",
+  "PC_traffic1","PC_traffic2",
+  "PC_trans1","PC_trans2","PC_trans3"
+)
+
+form <- as.formula(paste("DPN ~", paste(covars, collapse = " + ")))
+
+model <- glm(form, data = data, family = binomial())
 data$propensity_score <- predict(model, type = "response")
 
-match <- matchit(DPN ~ wind + tmpmean + rhu + isa + DEM + area2020, data = data, method = "nearest", caliper = 0.15)
+match <- matchit(form, data = data, method = "nearest", caliper = 0.2)
 
-# 获取匹配后的数据
 matched_data <- match.data(match)
 
-# 结果分析
 summary(match)
 bal.tab(match, stats = c("mean.diffs", "variance.ratios"), thresholds = c(m = 0.1))
 
-# 处理结果的 t 检验
-outcome <- matched_data$PM10
-treatment <- matched_data$DPN
-t.test(outcome ~ treatment) 
+# ----------------------------
+# 4) 结果：t 检验
+# ----------------------------
+t.test(PM10 ~ DPN, data = matched_data)
