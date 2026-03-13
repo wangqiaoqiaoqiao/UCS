@@ -3,7 +3,7 @@ library(MatchIt)
 library(readxl)
 
 # 读取数据
-data <- read_excel("./Submit/Supplementary material/Supplementary Tables 8 UCS for covariate matching approach.xlsx")
+data <- read_excel("./Submit/Supplementary material/Supplementary Tables 20 UCS for covariate matching approach.xlsx")
 
 # ----------------------------
 # 0) 可选：转换为密度/强度（推荐）
