@@ -74,7 +74,7 @@ form <- as.formula(paste("DPN ~", paste(covars, collapse = " + ")))
 model <- glm(form, data = data, family = binomial())
 data$propensity_score <- predict(model, type = "response")
 
-match <- matchit(form, data = data, method = "nearest", caliper = 0.2)
+match <- matchit(form, data = data, method = "nearest", caliper = 0.1)
 
 matched_data <- match.data(match)
 
