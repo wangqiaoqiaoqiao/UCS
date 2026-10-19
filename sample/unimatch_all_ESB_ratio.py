@@ -112,7 +112,7 @@ def main():
         num_workers=4,
         shuffle=True,
         drop_last=True)
-    args.total_steps = cfg['epochs']*len(trainloader_l)/cfg['batch_size']
+    args.total_steps = cfg['epochs']*len(trainloader_l)
     scheduler = get_cosine_schedule_with_warmup(optimizer, args.warmup, args.total_steps)
     previous_best = 0.0
     epoch = -1
